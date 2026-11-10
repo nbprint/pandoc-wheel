@@ -6,7 +6,7 @@ add_extension: python
 add_wiki: false
 email: 3105306+timkpaine@users.noreply.github.com
 github: nbprint
-project_description: Python/PyPI wrapper for Pandoc
+project_description: Pandoc binaries distributed as Python wheels
 project_name: pandoc-wheel
 python_version_primary: '3.11'
 team: the pandoc-wheel authors

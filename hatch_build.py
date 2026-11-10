@@ -83,6 +83,11 @@ class CustomHook(BuildHookInterface):
             (payload / name).write_bytes(download(url, SOURCE_FILES[name]))
         if asset == "wasm.zip":
             self.build_wasm(payload)
+        else:
+            scripts = Path("build/scripts")
+            scripts.mkdir(parents=True, exist_ok=True)
+            (payload / executable).replace(scripts / executable)
+            build_data["shared_scripts"][str(scripts / executable)] = executable
         build_data["pure_python"] = False
         build_data["tag"] = f"py3-none-{target}"
 

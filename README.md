@@ -1,6 +1,6 @@
 # pandoc-wheel
 
-Python wheels bundling [Pandoc 3.13](https://github.com/jgm/pandoc/releases/tag/3.13).
+[Pandoc 3.13](https://github.com/jgm/pandoc/releases/tag/3.13) binaries distributed as Python wheels.
 
 [![Build Status](https://github.com/nbprint/pandoc-wheel/actions/workflows/build.yaml/badge.svg?branch=main&event=push)](https://github.com/nbprint/pandoc-wheel/actions/workflows/build.yaml)
 [![License](https://img.shields.io/github/license/nbprint/pandoc-wheel)](https://github.com/nbprint/pandoc-wheel)
@@ -13,53 +13,46 @@ Download the matching wheel from the [build artifacts](https://github.com/nbprin
 python -m pip install ./pandoc_wheel-*.whl
 pandoc --version
 pandoc input.md -o output.docx
-python -m pandoc_wheel input.md -t html
 ```
 
-`pandoc-cli` also passes arguments through to the bundled executable. To use the executable from Python:
+Native wheels install the upstream executable directly into the environment's scripts directory (`bin` or `Scripts`). Supported platforms: macOS 15+ arm64, glibc Linux x86_64 and aarch64 (manylinux2014), and Windows x64. Wheels require Python 3.11+.
 
-```python
-from subprocess import run
+For a Python API, install [pandoc](https://pypi.org/project/pandoc/) or [pypandoc](https://pypi.org/project/pypandoc/) separately. For example:
 
-from pandoc_wheel.cli import get_pandoc_path
-
-run([get_pandoc_path(), "input.md", "-o", "output.docx"], check=True)
+```bash
+python -m pip install pypandoc
 ```
 
-Native wheels support Python 3.11+ on macOS 15+ arm64, glibc Linux x86_64 and aarch64 (manylinux2014), and Windows x64.
-
-## Convert in Pyodide
-
-Install the `pyemscripten_2026_0_wasm32` wheel in Pyodide 314.0.7 using its hosted URL:
-
 ```python
+import pypandoc
+
+html = pypandoc.convert_text("**Hello**", "html", format="markdown")
+```
+
+The binary distribution has no runtime dependencies. Applications can depend on both it and their chosen Python wrapper.
+
+## Load Pandoc in Pyodide
+
+The `pyemscripten_2026_0_wasm32` wheel contains `pandoc.wasm`, the upstream JavaScript interface bundled as `pandoc.mjs`, and its WASI shim. Install it in Pyodide 314.0.7, then load those assets from JavaScript using an initialized `pyodide` instance:
+
+```javascript
+await pyodide.loadPackage("micropip");
+await pyodide.runPythonAsync(`
 import micropip
-
 await micropip.install("https://your-host/pandoc_wheel-0.1.0-py3-none-pyemscripten_2026_0_wasm32.whl")
-
-from pandoc_wheel.pyodide import convert, query
-
-print(await query({"query": "version"}))
-result = await convert({"from": "markdown", "to": "html"}, "**Hello**")
-print(result["stdout"])
+`);
+const payload = pyodide.runPython(`
+from importlib.resources import files
+str(files("pandoc_wheel") / "bin")
+`);
+const source = pyodide.FS.readFile(`${payload}/pandoc.mjs`, {encoding: "utf8"});
+const {createPandoc} = await import(`data:text/javascript;charset=utf-8,${encodeURIComponent(source)}`);
+const pandoc = await createPandoc(pyodide.FS.readFile(`${payload}/pandoc.wasm`));
+const result = await pandoc.convert({from: "markdown", to: "html"}, "**Hello**", {});
+console.log(result.stdout);
 ```
 
-Pass binary resources through `files`, and read output files from the result:
-
-```python
-result = await convert(
-    {"from": "markdown", "to": "docx", "output-file": "document.docx"},
-    "**Hello**",
-)
-document = result["files"]["document.docx"]  # bytes
-
-result = await convert(
-    {"from": "docx", "to": "html", "input-files": ["document.docx"]},
-    files={"document.docx": document},
-)
-```
-
-Options follow [Pandoc's WASM interface](https://github.com/jgm/pandoc/blob/3.13/wasm/pandoc.js). Results contain `stdout`, `stderr`, `warnings`, and `files`. Pandoc and its WASI shim are bundled; conversion needs no further downloads. The WASM sandbox cannot run external filters or PDF engines.
+Use [Pandoc's WASM interface](https://github.com/jgm/pandoc/blob/3.13/wasm/pandoc.js) for options, queries, and binary files. Conversion uses the bundled assets without further downloads. Native Python wrappers use subprocesses and cannot execute this WASI module in Pyodide. The WASM sandbox cannot run external filters or PDF engines.
 
 ## Build wheels
 
@@ -80,11 +73,11 @@ npx playwright install chromium
 PANDOC_TEST_BROWSER=1 node test-pyodide.mjs ../dist/*pyemscripten*.whl
 ```
 
-CI builds and tests all five platforms. Pyodide tests run in Node.js and Chromium. Package version starts at the template's `0.1.0`; the bundled Pandoc version is pinned independently in `hatch_build.py`.
+CI builds and tests all five platforms. Native tests verify the installed executable and pypandoc compatibility. Pyodide tests install the wheel and exercise the upstream WASM interface in Node.js and Chromium. The bundled Pandoc version is pinned in `hatch_build.py`.
 
 ## License
 
-The Python wrapper uses Apache-2.0; see [LICENSE](LICENSE). Bundled Pandoc uses GPL-2.0-or-later; its [source](https://github.com/jgm/pandoc/tree/3.13), [build instructions](https://github.com/jgm/pandoc/blob/3.13/INSTALL.md), copyright notice, and license are available upstream. Wheels include Pandoc's `COPYING.md` and `COPYRIGHT`. The WASM interface and WASI shim use MIT licenses, also included in the Pyodide wheel.
+Packaging code uses Apache-2.0; see [LICENSE](LICENSE). Bundled Pandoc uses GPL-2.0-or-later; its [source](https://github.com/jgm/pandoc/tree/3.13), [build instructions](https://github.com/jgm/pandoc/blob/3.13/INSTALL.md), copyright notice, and license are available upstream. Wheels include Pandoc's `COPYING.md` and `COPYRIGHT`. The WASM interface and WASI shim use MIT licenses, also included in the Pyodide wheel.
 
 > [!NOTE]
 > Generated with [Copier](https://copier.readthedocs.io/en/stable/) from the [Base Python Project Template](https://github.com/python-project-templates/base), following [verilator-python](https://github.com/dau-dev/verilator-python). The initial commit contains the unmodified template output.
