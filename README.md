@@ -39,7 +39,7 @@ The `pyemscripten_2026_0_wasm32` wheel contains `pandoc.wasm`, the upstream Java
 await pyodide.loadPackage("micropip");
 await pyodide.runPythonAsync(`
 import micropip
-await micropip.install("https://your-host/pandoc_wheel-0.1.0-py3-none-pyemscripten_2026_0_wasm32.whl")
+await micropip.install("https://your-host/pandoc_wheel-3.13.0-py3-none-pyemscripten_2026_0_wasm32.whl")
 `);
 const payload = pyodide.runPython(`
 from importlib.resources import files
