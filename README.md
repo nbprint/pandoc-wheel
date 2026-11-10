@@ -80,4 +80,4 @@ CI builds and tests all five platforms. Native tests verify the installed execut
 Packaging code uses Apache-2.0; see [LICENSE](LICENSE). Bundled Pandoc uses GPL-2.0-or-later; its [source](https://github.com/jgm/pandoc/tree/3.13), [build instructions](https://github.com/jgm/pandoc/blob/3.13/INSTALL.md), copyright notice, and license are available upstream. Wheels include Pandoc's `COPYING.md` and `COPYRIGHT`. The WASM interface and WASI shim use MIT licenses, also included in the Pyodide wheel.
 
 > [!NOTE]
-> Generated with [Copier](https://copier.readthedocs.io/en/stable/) from the [Base Python Project Template](https://github.com/python-project-templates/base), following [verilator-python](https://github.com/dau-dev/verilator-python). The initial commit contains the unmodified template output.
+> This library was generated using [copier](https://copier.readthedocs.io/en/stable/) from the [Base Python Project Template repository](https://github.com/python-project-templates/base).
