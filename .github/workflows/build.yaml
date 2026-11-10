@@ -19,10 +19,20 @@ permissions:
 
 jobs:
   build:
+    name: build (${{ matrix.os }}, ${{ matrix.python-version }}, ${{ matrix.cibuildwheel }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os:
+          - ubuntu-24.04
+          - ubuntu-24.04-arm
+          - macos-15
+          - windows-2022
+        python-version:
+          - "3.11"
+        cibuildwheel:
+          - "cp311"
         include:
           - os: ubuntu-24.04
             platform: linux
@@ -37,6 +47,8 @@ jobs:
             platform: windows
             arch: AMD64
           - os: ubuntu-24.04
+            python-version: "3.11"
+            cibuildwheel: "pyodide"
             platform: pyodide
             arch: wasm32
     steps:
@@ -48,7 +60,7 @@ jobs:
       - name: Setup Python
         uses: actions-ext/python/setup@c7ef9cbf13bc854a8d1422e9f8c6ee7a7ce1b911
         with:
-          version: "3.11"
+          version: ${{ matrix.python-version }}
 
       - name: Install dependencies
         run: python -m pip install cibuildwheel build twine
@@ -59,6 +71,7 @@ jobs:
         env:
           CIBW_PLATFORM: ${{ matrix.platform }}
           CIBW_ARCHS: ${{ matrix.arch }}
+          CIBW_BUILD: "${{ matrix.cibuildwheel }}-*"
 
       - name: Build Pyodide wheel
         if: matrix.platform == 'pyodide'
