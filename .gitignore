@@ -160,3 +160,6 @@ ROADMAP.md
 AGENTS.md
 .github/hooks/sdlc.json
 .superpowers
+
+pandoc_wheel/bin/
+js/pandoc.js

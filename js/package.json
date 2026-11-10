@@ -1,0 +1,12 @@
+{
+  "private": true,
+  "scripts": {
+    "build": "esbuild pandoc.js --bundle --format=esm --outfile=../pandoc_wheel/bin/pandoc.mjs"
+  },
+  "dependencies": {
+    "@bjorn3/browser_wasi_shim": "0.3.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.27.3"
+  }
+}

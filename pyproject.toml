@@ -11,7 +11,7 @@ authors = [
 ]
 description = "Python/PyPI wrapper for Pandoc"
 readme = "README.md"
-license = { text = "Apache-2.0" }
+license = { text = "Apache-2.0 AND GPL-2.0-or-later AND MIT" }
 version = "0.1.0"
 requires-python = ">=3.11"
 keywords = []
@@ -35,6 +35,7 @@ develop = [
     "build",
     "bump-my-version",
     "check-dist",
+    "cibuildwheel",
     "codespell",
     "hatchling",
     "mdformat",
@@ -50,6 +51,8 @@ develop = [
 ]
 
 [project.scripts]
+pandoc = "pandoc_wheel.cli:main"
+pandoc-cli = "pandoc_wheel.cli:main"
 
 [project.urls]
 Repository = "https://github.com/nbprint/pandoc-wheel"
@@ -75,6 +78,7 @@ replace = 'version = "{new_version}"'
 branch = true
 omit = [
     "pandoc_wheel/tests/integration/*",
+    "pandoc_wheel/pyodide.py", # Tested in Node.js and Chromium by js/test-pyodide.mjs.
 ]
 
 [tool.coverage.report]
@@ -93,16 +97,47 @@ artifacts = []
 src = "/"
 
 [tool.hatch.build.targets.sdist]
-packages = [
+only-include = [
     "pandoc_wheel",
+    "hatch_build.py",
+    "js/package.json",
+    "js/package-lock.json",
 ]
+exclude = [
+    "/pandoc_wheel/bin",
+]
+
+[tool.hatch.build.targets.wheel.hooks.custom]
 
 [tool.hatch.build.targets.wheel]
 packages = [
     "pandoc_wheel",
 ]
+artifacts = [
+    "pandoc_wheel/bin/",
+]
 
 [tool.hatch.build.targets.wheel.shared-data]
+
+[tool.cibuildwheel]
+build = "cp311-*"
+test-command = "python -m pytest --import-mode=importlib {project}/pandoc_wheel/tests"
+test-requires = ["pytest"]
+
+[tool.cibuildwheel.linux]
+repair-wheel-command = ""
+skip = "*i686 musllinux*"
+manylinux-x86_64-image = "manylinux2014"
+manylinux-aarch64-image = "manylinux2014"
+
+[tool.cibuildwheel.macos]
+repair-wheel-command = ""
+environment = {MACOSX_DEPLOYMENT_TARGET="15.0"}
+archs = "arm64"
+
+[tool.cibuildwheel.windows]
+repair-wheel-command = ""
+archs = "AMD64"
 
 [tool.pytest.ini_options]
 addopts = [

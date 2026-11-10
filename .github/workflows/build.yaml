@@ -2,16 +2,10 @@ name: Build Status
 
 on:
   push:
-    branches:
-      - main
-    tags:
-      - v*
-    paths-ignore:
-      - LICENSE
-      - README.md
+    branches: [main]
+    tags: [v*]
   pull_request:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
@@ -25,11 +19,29 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-24.04
-
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            platform: linux
+            arch: x86_64
+          - os: ubuntu-24.04-arm
+            platform: linux
+            arch: aarch64
+          - os: macos-15
+            platform: macos
+            arch: arm64
+          - os: windows-2022
+            platform: windows
+            arch: AMD64
+          - os: ubuntu-24.04
+            platform: pyodide
+            arch: wasm32
     steps:
       - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -39,52 +51,69 @@ jobs:
           version: "3.11"
 
       - name: Install dependencies
+        run: python -m pip install cibuildwheel build twine
+
+      - name: Build and test native wheel
+        if: matrix.platform != 'pyodide'
+        run: python -m cibuildwheel --output-dir dist
+        env:
+          CIBW_PLATFORM: ${{ matrix.platform }}
+          CIBW_ARCHS: ${{ matrix.arch }}
+
+      - name: Build Pyodide wheel
+        if: matrix.platform == 'pyodide'
+        run: python -m build -w
+        env:
+          PANDOC_WHEEL_PLATFORM: pyemscripten_2026_0_wasm32
+
+      - name: Test Pyodide wheel
+        if: matrix.platform == 'pyodide'
+        run: |
+          npm install --no-save --package-lock=false pyodide@314.0.7 playwright@1.64.1
+          npx playwright install --with-deps chromium
+          node test-pyodide.mjs ../dist/*.whl
+        working-directory: js
+        env:
+          PANDOC_TEST_BROWSER: "1"
+
+      - name: Install development dependencies
+        if: matrix.os == 'macos-15'
         run: make develop
 
       - name: Lint
+        if: matrix.os == 'macos-15'
         run: make lint
 
       - name: Checks
+        if: matrix.os == 'macos-15'
         run: make checks
 
-      - name: Build
-        run: make build
-
       - name: Test
+        if: matrix.os == 'macos-15'
         run: make coverage
 
-      - name: Upload test results (Python)
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
-        with:
-          name: test-results
-          path: junit.xml
-        if: always()
-
-      - name: Publish test results
-        uses: EnricoMi/publish-unit-test-result-action@7622c5bf3d112a72ab4fa3951c2aa5723d8ab92d  # v2.25.0
-        with:
-          files: '**/junit.xml'
-
-      - name: Upload coverage
-        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5  # v7.1.1
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-
-      - name: Build distributions
-        run: make dist
-
-      - name: Test wheel
-        uses: actions-ext/python/test-wheel@c7ef9cbf13bc854a8d1422e9f8c6ee7a7ce1b911
-        with:
-          module: pandoc_wheel
+      - name: Build source distribution
+        if: matrix.os == 'macos-15'
+        run: python -m build -s
 
       - name: Test source distribution
+        if: matrix.os == 'macos-15'
         uses: actions-ext/python/test-sdist@c7ef9cbf13bc854a8d1422e9f8c6ee7a7ce1b911
         with:
           module: pandoc_wheel
 
+      - name: Check distributions
+        run: python -m twine check dist/*
+
       - name: Upload distributions
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: dist
+          name: dist-${{ matrix.platform }}-${{ matrix.arch }}
           path: dist
+
+      - name: Upload test results (Python)
+        if: always() && matrix.os == 'macos-15'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-results
+          path: junit.xml
