@@ -126,7 +126,7 @@ test-requires = ["pytest"]
 
 [tool.cibuildwheel.linux]
 repair-wheel-command = ""
-skip = "*i686 musllinux*"
+skip = "*i686 *musllinux*"
 manylinux-x86_64-image = "manylinux2014"
 manylinux-aarch64-image = "manylinux2014"
 

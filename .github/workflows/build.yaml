@@ -84,6 +84,10 @@ jobs:
         if: matrix.os == 'macos-15'
         run: make lint
 
+      - name: Build source distribution
+        if: matrix.os == 'macos-15'
+        run: python -m build -s
+
       - name: Checks
         if: matrix.os == 'macos-15'
         run: make checks
@@ -91,10 +95,6 @@ jobs:
       - name: Test
         if: matrix.os == 'macos-15'
         run: make coverage
-
-      - name: Build source distribution
-        if: matrix.os == 'macos-15'
-        run: python -m build -s
 
       - name: Test source distribution
         if: matrix.os == 'macos-15'
